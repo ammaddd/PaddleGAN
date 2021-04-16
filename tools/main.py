@@ -19,17 +19,19 @@ cur_path = os.path.abspath(os.path.dirname(__file__))
 root_path = os.path.split(cur_path)[0]
 sys.path.append(root_path)
 
+from comet_ml import Experiment
+
 from ppgan.utils.options import parse_args
 from ppgan.utils.config import get_config
 from ppgan.utils.setup import setup
 from ppgan.engine.trainer import Trainer
 
 
-def main(args, cfg):
+def main(args, cfg, experiment):
     # init environment, include logger, dynamic graph, seed, device, train or test mode...
     setup(args, cfg)
     # build trainer
-    trainer = Trainer(cfg)
+    trainer = Trainer(cfg, experiment)
 
     # continue train or evaluate, checkpoint need contain epoch and optimizer info
     if args.resume:
@@ -52,5 +54,10 @@ def main(args, cfg):
 if __name__ == '__main__':
     args = parse_args()
     cfg = get_config(args.config_file, args.opt)
+    
+    experiment = Experiment(auto_metric_logging=False)
+    experiment.log_others(vars(args))
+    experiment.log_asset(args.config_file, "config.yaml")
+    experiment.log_code("./ppgan/engine/trainer.py")
 
-    main(args, cfg)
+    main(args, cfg, experiment)
