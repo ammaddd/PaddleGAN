@@ -60,6 +60,12 @@ def parse_args():
                         help="path to reference images")
     parser.add_argument("--model_path", default=None, help="model for loading")
 
+    #comet logging
+    parser.add_argument('--comet',
+                        default=False,
+                        type=bool,
+                        help='enable comet logging')
+
     args = parser.parse_args()
 
     return args

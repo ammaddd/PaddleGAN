@@ -71,9 +71,10 @@ class Trainer:
     #                     |                                    ||
     #         save checkpoint (model.nets)                     \/
     """
-    def __init__(self, cfg):
+    def __init__(self, cfg, comet_logger=None):
         # base config
         self.logger = logging.getLogger(__name__)
+        self.comet_logger = comet_logger
         self.cfg = cfg
         self.output_dir = cfg.output_dir
         self.max_eval_steps = cfg.model.get('max_eval_steps', None)
@@ -284,6 +285,7 @@ class Trainer:
             message += '%s: %.3f ' % (k, v)
             if self.enable_visualdl:
                 self.vdl_logger.add_scalar(k, v, step=self.global_steps)
+            self.comet_logger.log_metric(k, float(v), step=self.global_steps)
 
         if hasattr(self, 'step_time'):
             message += 'batch_cost: %.5f sec ' % self.step_time
@@ -353,6 +355,11 @@ class Trainer:
                                         msg + '%s.png' % (label))
                 save_image(image_numpy, img_path)
 
+            self.comet_logger.log_image(
+                image_numpy, name=results_dir + '/' + label,
+                step=step if step else self.global_steps,
+                image_channels="last" if image_num == 1 else "first")
+
     def save(self, epoch, name='checkpoint', keep=1):
         if self.local_rank != 0:
             return
@@ -373,6 +380,7 @@ class Trainer:
 
         if name == 'weight':
             save(state_dicts, save_path)
+            self.comet_logger.log_model("model", save_path)
             return
 
         state_dicts['epoch'] = epoch
@@ -381,6 +389,7 @@ class Trainer:
             state_dicts[opt_name] = opt.state_dict()
 
         save(state_dicts, save_path)
+        self.comet_logger.log_model("model", save_path)
 
         if keep > 0:
             try:
